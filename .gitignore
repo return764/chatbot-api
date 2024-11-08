@@ -1,0 +1,7 @@
+config.toml
+
+*.iml
+*.http
+/__pycache__/**
+/.idea/**
+/vene/**

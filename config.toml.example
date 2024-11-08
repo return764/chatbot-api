@@ -1,0 +1,9 @@
+# 目标用户配置
+[users]
+# 需要处理消息的用户ID列表
+target_users = []
+
+# API配置
+[api]
+# 和风天气API密钥
+qweather_key = "your-api-key" 
