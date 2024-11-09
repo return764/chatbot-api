@@ -26,7 +26,7 @@ LOGGING_CONFIG = {
     "disable_existing_loggers": False,
     "formatters": {
         "colored": {
-            "()": "logger.ColorFormatter",
+            "()": "app.logger.ColorFormatter",
             "fmt": "[%(asctime)s] %(levelname)s %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
         }

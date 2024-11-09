@@ -45,13 +45,12 @@ if __name__ == "__main__":
     import uvicorn
     from app.logger import LOGGING_CONFIG
     
-    # uvicorn.run(
-    #     "main:app", 
-    #     host="192.168.2.7", 
-    #     port=5140,
-    #     reload=True,
-    #     log_config=LOGGING_CONFIG
-    # )
+    uvicorn.run(
+        "main:app", 
+        host="192.168.2.7", 
+        port=5140,
+        reload=True,
+        log_config=LOGGING_CONFIG
+    )
 
-    print(f"回答：{AIHandler.get_instance().get_response('武侯区15天后的天气如何')}")
 

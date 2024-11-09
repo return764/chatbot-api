@@ -40,7 +40,6 @@ class AIHandler:
         """获取AI响应"""
         try:
             response = self.agent_executor.invoke({"messages": [HumanMessage(content=message)]})
-            print(f"AI响应: {response}")
             return response["messages"][-1].content
         except Exception as e:
             print(f"AI处理出错: {e}")

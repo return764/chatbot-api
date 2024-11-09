@@ -8,23 +8,26 @@ logger = logging.getLogger("uvicorn")
 
 async def handle_private_message(message: PrivateMessage) -> None:
     """处理私聊消息"""
-    if message.sender.user_id in config.target_users:
+    if config.is_user_allowed(message.sender.user_id):
         formatted = format_message(message)
         logger.info(f"收到私聊消息: {formatted.raw.raw_message} (纯文本: {formatted.content}, @: {formatted.at_list})")
         
         # 获取AI响应
-        response = await AIHandler.get_instance().get_response(formatted.content)
+        response = AIHandler.get_instance().get_response(formatted.content)
         if response:
             logger.info(f"AI响应: {response}")
 
 async def handle_group_message(message: GroupMessage) -> None:
     """处理群聊消息"""
-    if message.sender.user_id in config.target_users:
+    if config.is_user_allowed(message.sender.user_id, message.group_id):
         formatted = format_message(message)
         logger.info(f"收到群聊消息 [群:{message.group_id}]: {formatted.raw.raw_message} (纯文本: {formatted.content}, @: {formatted.at_list})")
         
+        if config.need_at(message.group_id) and config.bot_id not in formatted.at_list:
+            return
+
         # 获取AI响应
-        response = await AIHandler.get_instance().get_response(formatted.content)
+        response = AIHandler.get_instance().get_response(formatted.content)
         if response:
             logger.info(f"AI响应: {response}")
 
