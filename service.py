@@ -130,26 +130,27 @@ def get_city_weather(city_name: str) -> str:
         return f"获取天气信息失败: {city_name}"
     
     # 格式化当前天气
-    current = weather_info["current"]
-    result = [
-        f"今天是{datetime.now().strftime('%Y-%m-%d')}, "
-        f"{city_name}实时天气: {current['text']}, "
-        f"温度{current['temp']}℃, "
-        f"体感温度{current['feelsLike']}℃, "
-        f"湿度{current['humidity']}%, "
-        f"{current['windDir']}{current['windScale']}级"
-    ]
-    
-    # 添加未来天气预报
-    result.append("\n未来天气预报:")
-    for day in weather_info["daily"]:
-        result.append(
-            f"\n{day['date']}: {day['textDay']}转{day['textNight']}, "
-            f"气温{day['tempMin']}-{day['tempMax']}℃, "
-            f"湿度{day['humidity']}%, "
-            f"紫外线强度{day['uvIndex']}, "
-            f"{day['windDirDay']}{day['windScaleDay']}级"
-        )
-    
-    print(result)
+    try:
+        current = weather_info["current"]
+        result = [
+            f"今天是{datetime.now().strftime('%Y-%m-%d')}, "
+            f"{city_name}实时天气: {current['text']}, "
+            f"温度{current['temp']}℃, "
+            f"体感温度{current['feelsLike']}℃, "
+            f"湿度{current['humidity']}%, "
+            f"{current['windDir']}{current['windScale']}级"
+        ]
+        
+        # 添加未来天气预报
+        result.append("\n未来天气预报:")
+        for day in weather_info["daily"]:
+            result.append(
+                f"\n{day['date']}: {day['textDay']}转{day['textNight']}, "
+                f"气温{day['tempMin']}-{day['tempMax']}℃, "
+                f"湿度{day['humidity']}%, "
+                f"紫外线强度{day.get('uvIndex', '未知')}, "
+                f"{day['windDirDay']}{day['windScaleDay']}级"
+            )
+    except Exception as e:
+        logger.error(f"格式化天气信息失败: {str(e)}")
     return "".join(result) 
