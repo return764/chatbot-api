@@ -2,6 +2,6 @@ config.toml
 
 *.iml
 *.http
-/__pycache__/**
+**/__pycache__/**
 /.idea/**
 /vene/**

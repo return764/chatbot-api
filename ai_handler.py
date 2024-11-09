@@ -39,7 +39,7 @@ def setup_ai_handler():
 
 if __name__ == '__main__':
     setup_ai_handler()
-    print(f"回答：{ai_handler.get_response('成都和武汉的天气如何')}")
+    print(f"回答：{ai_handler.get_response('武侯区后天的天气如何')}")
 
 
     
