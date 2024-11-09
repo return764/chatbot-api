@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     
     # 群组配置
     groups: Dict[int, GroupConfig] = {}
-    
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
