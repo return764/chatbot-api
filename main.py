@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from app.ai_handler import AIHandler
+from fastapi.concurrency import asynccontextmanager
 from app.model import (
     BasicMessage, 
     GroupMessage, 
@@ -17,10 +17,16 @@ from app.handler import (
 )
 import logging
 
+from app.sql.client import db_client
 
 logger = logging.getLogger("uvicorn")
 app = FastAPI()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    db_client.close()
 
 @app.post("/onebot")
 async def onebotapi(request: Request):

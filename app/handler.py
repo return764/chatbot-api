@@ -4,6 +4,7 @@ from app.model import GroupMessage, MetaEventReport, NoticeReport, PrivateMessag
 from app.config import config
 from app.message_formatter import format_message
 from app.ai_handler import AIHandler
+from app.sql.chat_history import add_chat_history
 
 logger = logging.getLogger("uvicorn")
 
@@ -25,10 +26,12 @@ async def handle_group_message(message: GroupMessage) -> None:
         
         if config.need_at(message.group_id) and config.bot_id not in formatted.at_list:
             return
-
+        
+        add_chat_history(formatted.content, message.sender.user_id, message.group_id)
         response = AIHandler.get_instance().get_response(formatted.content)
         if response:
             logger.info(f"AI响应: {response}")
+            add_chat_history(response, message.sender.user_id, message.group_id)
             await BotClient.get_instance().send_group_message(message.group_id, response)
 
 
