@@ -9,6 +9,7 @@ class GroupConfig(BaseModel):
     id: int
     at_only: bool = True
     allowed_users: List[int] = []
+    black_list: List[int] = []  # 群组黑名单列表
 
 class Settings(BaseSettings):
     # OpenAI 配置
@@ -21,7 +22,7 @@ class Settings(BaseSettings):
     
     # 用户配置
     bot_id: int
-    allowed_users: List[int] = []
+    allowed_users: List[int] = []  # 允许私聊的用户列表
     
     # 群组配置
     groups: Dict[int, GroupConfig] = {}
@@ -40,14 +41,18 @@ class Settings(BaseSettings):
         Returns:
             bool: 是否允许使用
         """
-        # 如果是私聊，直接检查是否在全局允许列表中
+        # 如果是私聊，只检查是否在允许列表中
         if group_id is None:
             return user_id in self.allowed_users
             
         # 如果是群聊
         group_config = self.groups.get(group_id)
         if group_config:
-            # 如果群组的允许用户列表为空，表示允许所有用户
+            # 首先检查是否在群组黑名单中
+            if user_id in group_config.black_list:
+                return False
+                
+            # 如果群组的允许用户列表为空，表示允许所有非黑名单用户
             if not group_config.allowed_users:
                 return True
             # 否则检查用户是否在群组的允许列表中
@@ -91,7 +96,8 @@ def load_config() -> Settings:
                     groups_dict[group_id] = GroupConfig(
                         id=group_id,
                         at_only=group.get("at_only", True),
-                        allowed_users=group.get("allowed_users", [])
+                        allowed_users=group.get("allowed_users", []),
+                        black_list=group.get("black_list", [])
                     )
                 config_dict["groups"] = groups_dict
     
