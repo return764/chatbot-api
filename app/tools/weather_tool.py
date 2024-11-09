@@ -1,6 +1,9 @@
+import logging
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
-from service import get_city_weather
+from app.service import get_city_weather
+
+logger = logging.getLogger("uvicorn")
 
 class WeatherInput(BaseModel):
     location: str = Field(
@@ -21,4 +24,5 @@ def get_weather(location: str) -> str:
     Returns:
         str: 天气信息
     """
+    logger.info(f"获取天气信息: {location}")
     return get_city_weather(location) 

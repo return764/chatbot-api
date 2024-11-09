@@ -1,7 +1,6 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from ai_handler import ai_handler, setup_ai_handler
-from model import (
+from app.ai_handler import AIHandler
+from app.model import (
     BasicMessage, 
     GroupMessage, 
     PrivateMessage, 
@@ -9,7 +8,7 @@ from model import (
     NoticeReport, 
     MetaEventReport
 )
-from handler import (
+from app.handler import (
     handle_private_message,
     handle_group_message,
     handle_request,
@@ -20,13 +19,8 @@ import logging
 
 
 logger = logging.getLogger("uvicorn")
-setup_ai_handler()
-
 app = FastAPI()
 
-@app.get("/")
-async def root():
-    return await ai_handler.get_response("成都的天气怎么样?")
 
 @app.post("/onebot")
 async def onebotapi(request: Request):
@@ -49,13 +43,15 @@ async def onebotapi(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    from logger import LOGGING_CONFIG
+    from app.logger import LOGGING_CONFIG
     
-    uvicorn.run(
-        "main:app", 
-        host="192.168.2.7", 
-        port=5140,
-        reload=True,
-        log_config=LOGGING_CONFIG
-    )
+    # uvicorn.run(
+    #     "main:app", 
+    #     host="192.168.2.7", 
+    #     port=5140,
+    #     reload=True,
+    #     log_config=LOGGING_CONFIG
+    # )
+
+    print(f"回答：{AIHandler.get_instance().get_response('武侯区15天后的天气如何')}")
 

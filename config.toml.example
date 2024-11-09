@@ -6,4 +6,10 @@ target_users = []
 # API配置
 [api]
 # 和风天气API密钥
-qweather_key = "your-api-key" 
+qweather_key = "your-qweather-key"
+
+# ChatOpenAI配置
+[openai]
+api_key = "your-api-key"
+base_url = "https://api.openai.com/v1"  # 可选，默认使用 OpenAI 官方 API
+model = "gpt-3.5-turbo"  # 默认使用的模型名称

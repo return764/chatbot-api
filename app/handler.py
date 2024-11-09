@@ -1,8 +1,8 @@
 import logging
-from model import GroupMessage, MetaEventReport, NoticeReport, PrivateMessage, RequestReport
-from config import config
-from message_formatter import format_message
-from ai_handler import ai_handler
+from app.model import GroupMessage, MetaEventReport, NoticeReport, PrivateMessage, RequestReport
+from app.config import config
+from app.message_formatter import format_message
+from app.ai_handler import AIHandler
 
 logger = logging.getLogger("uvicorn")
 
@@ -13,7 +13,7 @@ async def handle_private_message(message: PrivateMessage) -> None:
         logger.info(f"收到私聊消息: {formatted.raw.raw_message} (纯文本: {formatted.content}, @: {formatted.at_list})")
         
         # 获取AI响应
-        response = await ai_handler.get_response(formatted.content)
+        response = await AIHandler.get_instance().get_response(formatted.content)
         if response:
             logger.info(f"AI响应: {response}")
 
@@ -24,7 +24,7 @@ async def handle_group_message(message: GroupMessage) -> None:
         logger.info(f"收到群聊消息 [群:{message.group_id}]: {formatted.raw.raw_message} (纯文本: {formatted.content}, @: {formatted.at_list})")
         
         # 获取AI响应
-        response = await ai_handler.get_response(formatted.content)
+        response = await AIHandler.get_instance().get_response(formatted.content)
         if response:
             logger.info(f"AI响应: {response}")
 

@@ -1,4 +1,4 @@
-from model import MessageReport, MessageData
+from app.model import MessageReport
 from typing import List
 from pydantic import BaseModel
 

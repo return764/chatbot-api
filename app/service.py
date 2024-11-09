@@ -1,7 +1,7 @@
 import httpx
-from typing import Optional, Dict, List
 import logging
-from config import config
+from typing import Optional, Dict, List
+from app.config import config
 from datetime import datetime
 
 logger = logging.getLogger("uvicorn")
@@ -123,18 +123,21 @@ def get_city_weather(city_name: str) -> str:
     """
     location_id = weather_service.get_location_id(city_name)
     if not location_id:
+        logger.error(f"未找到城市: {city_name}")
         return f"未找到城市: {city_name}"
         
     weather_info = weather_service.get_weather(location_id)
     if not weather_info:
+        logger.error(f"获取天气信息失败: {city_name}")
         return f"获取天气信息失败: {city_name}"
     
+    now = datetime.now().strftime('%Y-%m-%d')
     # 格式化当前天气
     try:
         current = weather_info["current"]
         result = [
-            f"今天是{datetime.now().strftime('%Y-%m-%d')}, "
-            f"{city_name}实时天气: {current['text']}, "
+            f"今天是{now}, "
+            f"{city_name} 实时天气: {current['text']}, "
             f"温度{current['temp']}℃, "
             f"体感温度{current['feelsLike']}℃, "
             f"湿度{current['humidity']}%, "
@@ -143,7 +146,7 @@ def get_city_weather(city_name: str) -> str:
         
         # 添加未来天气预报
         result.append("\n未来天气预报:")
-        for day in weather_info["daily"]:
+        for day in weather_info["daily"][1:]:
             result.append(
                 f"\n{day['date']}: {day['textDay']}转{day['textNight']}, "
                 f"气温{day['tempMin']}-{day['tempMax']}℃, "
@@ -153,4 +156,6 @@ def get_city_weather(city_name: str) -> str:
             )
     except Exception as e:
         logger.error(f"格式化天气信息失败: {str(e)}")
+    
+    logger.info(f"天气信息: {"".join(result) }")
     return "".join(result) 
