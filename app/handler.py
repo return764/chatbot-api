@@ -5,6 +5,7 @@ from app.config import config
 from app.message_formatter import format_message
 from app.ai_handler import AIHandler
 from app.sql.chat_history import add_chat_history
+from app.sql.models import MessageRole
 
 logger = logging.getLogger("uvicorn")
 ai_handler = AIHandler.get_instance()
@@ -16,18 +17,24 @@ async def handle_private_message(message: PrivateMessage) -> None:
         return
 
     logger.info(f"收到私聊消息: {formattedMessage.raw.raw_message} (纯文本: {formattedMessage.content}, @: {formattedMessage.at_list})")
+    
+    # 记录用户消息
     add_chat_history(
         content=formattedMessage.content,
-        user_id=message.user_id
+        user_id=message.user_id,
+        role=MessageRole.HUMAN
     )
+    
     try:
         response = ai_handler.get_response(formattedMessage.content)
         if response:
             logger.info(f"AI响应: {response}")
             await BotClient.get_instance().send_private_message(message.user_id, response)
+            # 记录AI响应
             add_chat_history(
-                content=formattedMessage.content,
-                user_id=message.user_id
+                content=response,
+                user_id=message.user_id,
+                role=MessageRole.AI
             )
     except Exception as e:
         logger.error(f"处理私聊消息出错: {str(e)}")
@@ -40,22 +47,26 @@ async def handle_group_message(message: GroupMessage) -> None:
     if not formattedMessage.should_reply():
         return
     
+    # 记录用户消息
     add_chat_history(
         content=formattedMessage.content,
         user_id=message.user_id,
-        group_id=message.group_id
+        group_id=message.group_id,
+        role=MessageRole.HUMAN
     )
+    
     try:
         # 获取AI响应
         response = ai_handler.get_response(formattedMessage.content)
         if response:
             # 发送响应
             await BotClient.get_instance().send_group_message(message.group_id, response)
-            # 记录聊天历史
+            # 记录AI响应
             add_chat_history(
-                content=formattedMessage.content,
+                content=response,
                 user_id=message.user_id,
-                group_id=message.group_id
+                group_id=message.group_id,
+                role=MessageRole.AI
             )
     except Exception as e:
         logger.error(f"处理群消息出错: {str(e)}")
