@@ -7,32 +7,58 @@ from app.ai_handler import AIHandler
 from app.sql.chat_history import add_chat_history
 
 logger = logging.getLogger("uvicorn")
+ai_handler = AIHandler.get_instance()
 
 async def handle_private_message(message: PrivateMessage) -> None:
+    formattedMessage = format_message(message)
     """处理私聊消息"""
-    if config.is_user_allowed(message.sender.user_id):
-        formatted = format_message(message)
-        logger.info(f"收到私聊消息: {formatted.raw.raw_message} (纯文本: {formatted.content}, @: {formatted.at_list})")
+    if not formattedMessage.should_reply():
+        return
 
-        response = AIHandler.get_instance().get_response(formatted.content)
+    logger.info(f"收到私聊消息: {formattedMessage.raw.raw_message} (纯文本: {formattedMessage.content}, @: {formattedMessage.at_list})")
+    add_chat_history(
+        content=formattedMessage.content,
+        user_id=message.user_id
+    )
+    try:
+        response = ai_handler.get_response(formattedMessage.content)
         if response:
             logger.info(f"AI响应: {response}")
+            await BotClient.get_instance().send_private_message(message.user_id, response)
+            add_chat_history(
+                content=formattedMessage.content,
+                user_id=message.user_id
+            )
+    except Exception as e:
+        logger.error(f"处理私聊消息出错: {str(e)}")
 
 async def handle_group_message(message: GroupMessage) -> None:
     """处理群聊消息"""
-    if config.is_user_allowed(message.sender.user_id, message.group_id):
-        formatted = format_message(message)
-        logger.info(f"收到群聊消息 [群:{message.group_id}]: {formatted.raw.raw_message} (纯文本: {formatted.content}, @: {formatted.at_list})")
-        
-        if config.need_at(message.group_id) and config.bot_id not in formatted.at_list:
-            return
-        
-        add_chat_history(formatted.content, message.sender.user_id, message.group_id)
-        response = AIHandler.get_instance().get_response(formatted.content)
+    formattedMessage = format_message(message)
+    
+    # 检查是否需要回复
+    if not formattedMessage.should_reply():
+        return
+    
+    add_chat_history(
+        content=formattedMessage.content,
+        user_id=message.user_id,
+        group_id=message.group_id
+    )
+    try:
+        # 获取AI响应
+        response = ai_handler.get_response(formattedMessage.content)
         if response:
-            logger.info(f"AI响应: {response}")
-            add_chat_history(response, message.sender.user_id, message.group_id)
+            # 发送响应
             await BotClient.get_instance().send_group_message(message.group_id, response)
+            # 记录聊天历史
+            add_chat_history(
+                content=formattedMessage.content,
+                user_id=message.user_id,
+                group_id=message.group_id
+            )
+    except Exception as e:
+        logger.error(f"处理群消息出错: {str(e)}")
 
 
 def handle_request(message: RequestReport) -> None:

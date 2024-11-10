@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Dict
 import tomli
 import os
 
@@ -26,44 +26,13 @@ class Settings(BaseSettings):
     
     # 群组配置
     groups: Dict[int, GroupConfig] = {}
-
+    
+    # 指令配置
+    command_prefix: str = "/"  # 指令前缀
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
-    
-    def is_user_allowed(self, user_id: int, group_id: Optional[int] = None) -> bool:
-        """检查用户是否有权限使用机器人
-        
-        Args:
-            user_id: 用户ID
-            group_id: 群组ID,如果是私聊则为None
-            
-        Returns:
-            bool: 是否允许使用
-        """
-        # 如果是私聊，只检查是否在允许列表中
-        if group_id is None:
-            return user_id in self.allowed_users
-            
-        # 如果是群聊
-        group_config = self.groups.get(group_id)
-        if group_config:
-            # 首先检查是否在群组黑名单中
-            if user_id in group_config.black_list:
-                return False
-                
-            # 如果群组的允许用户列表为空，表示允许所有非黑名单用户
-            if not group_config.allowed_users:
-                return True
-            # 否则检查用户是否在群组的允许列表中
-            return user_id in group_config.allowed_users
-        
-        return False
-    
-    def need_at(self, group_id: int) -> bool:
-        """检查群组是否需要@才响应"""
-        group_config = self.groups.get(group_id)
-        return group_config.at_only if group_config else True
 
 def load_config() -> Settings:
     config_dict = {}
