@@ -146,9 +146,9 @@ def get_city_weather(city_name: str) -> str:
         
         # 添加未来天气预报
         result.append("\n未来天气预报:")
-        for day in weather_info["daily"][1:]:
+        for index, day in enumerate(weather_info["daily"][1:]):
             result.append(
-                f"\n{day['date']}: {day['textDay']}转{day['textNight']}, "
+                f"\n 第{index+2}天 {day['date']}: {day['textDay']}转{day['textNight']}, "
                 f"气温{day['tempMin']}-{day['tempMax']}℃, "
                 f"湿度{day['humidity']}%, "
                 f"紫外线强度{day.get('uvIndex', '未知')}, "
@@ -157,5 +157,4 @@ def get_city_weather(city_name: str) -> str:
     except Exception as e:
         logger.error(f"格式化天气信息失败: {str(e)}")
     
-    logger.info(f"天气信息: {"".join(result) }")
     return "".join(result) 
