@@ -103,6 +103,7 @@ class WeatherService:
                     "tempMin": day["tempMin"],
                     "textDay": day["textDay"],
                     "textNight": day["textNight"],
+                    "uvIndex": day["uvIndex"],
                     "windDirDay": day["windDirDay"],
                     "windScaleDay": day["windScaleDay"],
                     "humidity": day["humidity"]
@@ -112,6 +113,7 @@ class WeatherService:
 # 创建全局服务实例
 weather_service = WeatherService()
 
+# 天气工具存在的问题是ai会回复历史问题
 def get_city_weather(city_name: str) -> str:
     """获取城市天气信息
     
@@ -131,12 +133,10 @@ def get_city_weather(city_name: str) -> str:
         logger.error(f"获取天气信息失败: {city_name}")
         return f"获取天气信息失败: {city_name}"
     
-    now = datetime.now().strftime('%Y-%m-%d')
     # 格式化当前天气
     try:
         current = weather_info["current"]
         result = [
-            f"今天是{now}, "
             f"{city_name} 实时天气: {current['text']}, "
             f"温度{current['temp']}℃, "
             f"体感温度{current['feelsLike']}℃, "
@@ -146,9 +146,9 @@ def get_city_weather(city_name: str) -> str:
         
         # 添加未来天气预报
         result.append("\n未来天气预报:")
-        for index, day in enumerate(weather_info["daily"][1:]):
+        for day in weather_info["daily"][1:]:
             result.append(
-                f"\n 第{index+2}天 {day['date']}: {day['textDay']}转{day['textNight']}, "
+                f"{day['date']}: {day['textDay']}转{day['textNight']}, "
                 f"气温{day['tempMin']}-{day['tempMax']}℃, "
                 f"湿度{day['humidity']}%, "
                 f"紫外线强度{day.get('uvIndex', '未知')}, "

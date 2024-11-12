@@ -24,5 +24,4 @@ def get_weather(location: str) -> str:
     Returns:
         str: 天气信息
     """
-    logger.info(f"获取天气信息: {location}")
     return get_city_weather(location) 

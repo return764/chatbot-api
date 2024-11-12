@@ -59,7 +59,7 @@ def get_user_history(
         if role:
             query = query.where(ChatHistory.role == role)
             
-        query = query.order_by(ChatHistory.created_at.desc()).limit(limit)
+        query = query.order_by(ChatHistory.created_at.asc()).limit(limit)
         
         result = session.exec(query)
         return result.all()
@@ -87,7 +87,7 @@ def get_group_history(
         if role:
             query = query.where(ChatHistory.role == role)
             
-        query = query.order_by(ChatHistory.created_at.desc()).limit(limit)
+        query = query.order_by(ChatHistory.created_at.asc()).limit(limit)
         
         result = session.exec(query)
         return result.all() 

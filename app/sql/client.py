@@ -35,7 +35,6 @@ class SQLiteClient:
         with Session(self.engine) as session:
             try:
                 yield session
-                session.commit()
             except Exception:
                 session.rollback()
                 raise

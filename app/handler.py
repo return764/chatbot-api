@@ -26,7 +26,7 @@ async def handle_private_message(message: PrivateMessage) -> None:
     )
     
     try:
-        response = ai_handler.get_response(formattedMessage.content)
+        response = ai_handler.get_response(formattedMessage)
         if response:
             logger.info(f"AI响应: {response}")
             await BotClient.get_instance().send_private_message(message.user_id, response)
@@ -55,21 +55,21 @@ async def handle_group_message(message: GroupMessage) -> None:
         role=MessageRole.HUMAN
     )
     
-    try:
+    # try:
         # 获取AI响应
-        response = ai_handler.get_response(formattedMessage.content)
-        if response:
-            # 发送响应
-            await BotClient.get_instance().send_group_message(message.group_id, response)
-            # 记录AI响应
-            add_chat_history(
-                content=response,
-                user_id=message.user_id,
-                group_id=message.group_id,
-                role=MessageRole.AI
-            )
-    except Exception as e:
-        logger.error(f"处理群消息出错: {str(e)}")
+    response = ai_handler.get_response(formattedMessage)
+    if response:
+        # 发送响应
+        await BotClient.get_instance().send_group_message(message.group_id, response)
+        # 记录AI响应
+        add_chat_history(
+            content=response,
+            user_id=message.user_id,
+            group_id=message.group_id,
+            role=MessageRole.AI
+        )
+    # except Exception as e:
+    #     logger.error(f"处理群消息出错: {str(e)}")
 
 
 def handle_request(message: RequestReport) -> None:
