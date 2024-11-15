@@ -1,16 +1,24 @@
 import httpx
 import logging
-from typing import Optional, Dict, List
+from typing import Annotated, Optional, Dict, List
+
+from langchain.tools import BaseTool
+from langgraph.prebuilt import InjectedState
+
 from app.config import config
-from datetime import datetime
+from app.ai.tools.abc import ToolServiceProvider
+from langchain_core.tools import tool
+from pydantic import BaseModel, Field
+from app.ai.state import CustomState
+
 
 logger = logging.getLogger("uvicorn")
 
-class WeatherService:
+class WeatherToolProvider(ToolServiceProvider):
     def __init__(self):
         self.key = config.qweather_key
-        if not self.key:
-            raise ValueError("未配置和风天气API密钥")
+        result = self.get_location_id('成都');
+        self.status = result is not None
 
     def get_location_id(self, city_name: str) -> Optional[str]:
         """通过城市名称获取位置ID"""
@@ -23,22 +31,22 @@ class WeatherService:
                 }
                 response = client.get("/city/lookup", params=params)
                 response.raise_for_status()
-                
+
                 data = response.json()
                 if data["code"] == "200" and data["location"]:
                     return data["location"][0]["id"]
                 return None
-                
+
         except Exception as e:
             logger.error(f"获取城市ID失败: {str(e)}")
             return None
 
     def get_weather(self, location_id: str) -> Optional[Dict]:
         """获取7天天气预报
-        
+
         Args:
             location_id: 城市ID
-            
+
         Returns:
             Dict: 包含实时天气和未来7天预报的字典
         """
@@ -47,17 +55,17 @@ class WeatherService:
             current_weather = self._get_current_weather(location_id)
             if not current_weather:
                 return None
-                
+
             # 获取7天预报
             daily_forecast = self._get_daily_forecast(location_id)
             if not daily_forecast:
                 return None
-                
+
             return {
                 "current": current_weather,
                 "daily": daily_forecast
             }
-                
+
         except Exception as e:
             logger.error(f"获取天气信息失败: {str(e)}")
             return None
@@ -71,7 +79,7 @@ class WeatherService:
             }
             response = client.get("/weather/now", params=params)
             response.raise_for_status()
-            
+
             data = response.json()
             if data["code"] == "200":
                 return {
@@ -94,7 +102,7 @@ class WeatherService:
             }
             response = client.get("/weather/7d", params=params)
             response.raise_for_status()
-            
+
             data = response.json()
             if data["code"] == "200":
                 return [{
@@ -110,16 +118,46 @@ class WeatherService:
                 } for day in data["daily"]]
             return None
 
+    def is_tool_available(self) -> bool:
+        return self.status
+
+    def get_tool(self) -> BaseTool:
+        class WeatherInput(BaseModel):
+            location: str = Field(
+                description="城市名称，例如'北京'、'上海'、'成都'等",
+                default="北京"
+            )
+
+        @tool(
+            "get_weather",
+            args_schema=WeatherInput,
+        )
+        def get_weather(location: str, state: Annotated[CustomState, InjectedState]) -> str:
+            """获取指定位置的天气信息。
+
+            Args:
+                location: 城市名称，如"北京"、"成都"等
+
+            Returns:
+                str: 天气信息
+            """
+            state["has_tool_call"] = True
+            return get_city_weather(location)
+
+        return get_weather
+
+
+
 # 创建全局服务实例
-weather_service = WeatherService()
+weather_service = WeatherToolProvider()
 
 # 天气工具存在的问题是ai会回复历史问题
 def get_city_weather(city_name: str) -> str:
     """获取城市天气信息
-    
+
     Args:
         city_name: 城市名称
-        
+
     Returns:
         str: 格式化的天气信息字符串
     """
@@ -127,12 +165,12 @@ def get_city_weather(city_name: str) -> str:
     if not location_id:
         logger.error(f"未找到城市: {city_name}")
         return f"未找到城市: {city_name}"
-        
+
     weather_info = weather_service.get_weather(location_id)
     if not weather_info:
         logger.error(f"获取天气信息失败: {city_name}")
         return f"获取天气信息失败: {city_name}"
-    
+
     # 格式化当前天气
     try:
         current = weather_info["current"]
@@ -143,7 +181,7 @@ def get_city_weather(city_name: str) -> str:
             f"湿度{current['humidity']}%, "
             f"{current['windDir']}{current['windScale']}级"
         ]
-        
+
         # 添加未来天气预报
         result.append("\n未来天气预报:")
         for day in weather_info["daily"][1:]:
@@ -156,5 +194,5 @@ def get_city_weather(city_name: str) -> str:
             )
     except Exception as e:
         logger.error(f"格式化天气信息失败: {str(e)}")
-    
-    return "".join(result) 
+
+    return "".join(result)

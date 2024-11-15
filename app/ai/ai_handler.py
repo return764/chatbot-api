@@ -3,11 +3,12 @@ from typing import Literal, Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.messages.utils import convert_to_messages
-from langgraph.prebuilt.chat_agent_executor import AgentState
+from app.ai.state import CustomState
 from app.message_formatter import FormattedMessage
 from app.model import GroupMessage
 from app.sql.chat_history import get_user_history
-from app.tools import get_tools
+from app.sql.models import MessageRole
+from app.ai.tools import get_tools
 from app.config import config
 from langgraph.graph import StateGraph, END
 from langgraph.store.base import BaseStore
@@ -22,9 +23,6 @@ def create_chat_model() -> ChatOpenAI:
         model=config.openai_model,
         temperature=0.7
     )
-
-class CustomState(AgentState):
-    today: str
 
 class CustomStore(BaseStore):
     pass
@@ -50,20 +48,11 @@ def create_agent():
     model_runnable = prepare_model_inputs | bound_model
 
     def call_model(state: CustomState, config: RunnableConfig) -> CustomState: 
-        if "configurable" not in config or "user_id" not in config["configurable"]:
-            raise ValueError(
-                "Make sure that the config includes the following information: {'configurable': {'user_id': 'some_value'}}"
-            )
-        user_id = config["configurable"]["user_id"]
-        group_id = config["configurable"].get("group_id", None)
-
-        histories = [message.model_dump() for message in get_user_history(user_id, group_id)]
-        state["messages"] = convert_to_messages(histories) + state["messages"]
         response = model_runnable.invoke(state, config)
         return {"messages": [response]}
 
 
-    def should_continue(state: AgentState) -> Literal["tools", "__end__"]:
+    def should_continue(state: CustomState) -> Literal["tools", "__end__"]:
         messages = state["messages"]
         last_message = messages[-1]
         if not isinstance(last_message, AIMessage) or not last_message.tool_calls:
@@ -78,7 +67,7 @@ def create_agent():
     workflow.add_node("tools", tool_nodes)
     workflow.add_edge("tools", "agent")
     workflow.add_conditional_edges("agent", should_continue, ["tools", END])
-    return workflow.compile(debug=True)
+    return workflow.compile()
 
 
 class AIHandler:
@@ -99,9 +88,10 @@ class AIHandler:
     def get_response(self, message: FormattedMessage) -> Optional[str]:
         """获取AI响应"""
         try:
+            histories = [message.model_dump() for message in get_user_history(message.raw.user_id, message.raw.group_id if isinstance(message.raw, GroupMessage) else None, role = MessageRole.AI)]
+
             response = self.agent_executor.invoke(
-                input={"messages": [HumanMessage(content=message.content)], "today": datetime.now().strftime("%Y-%m-%d")},
-                config={"configurable": {"user_id": message.raw.user_id, "group_id": message.raw.group_id if isinstance(message.raw, GroupMessage) else None}}
+                input={"messages": histories + [HumanMessage(content=message.content)], "today": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
             )
             return response["messages"][-1].content
         except Exception as e:

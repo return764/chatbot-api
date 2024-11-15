@@ -3,7 +3,7 @@ from app.bot_client import BotClient
 from app.model import GroupMessage, MetaEventReport, NoticeReport, PrivateMessage, RequestReport
 from app.config import config
 from app.message_formatter import format_message
-from app.ai_handler import AIHandler
+from app.ai.ai_handler import AIHandler
 from app.sql.chat_history import add_chat_history
 from app.sql.models import MessageRole
 
