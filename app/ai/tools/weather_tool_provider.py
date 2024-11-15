@@ -132,7 +132,7 @@ class WeatherToolProvider(ToolServiceProvider):
             "get_weather",
             args_schema=WeatherInput,
         )
-        def get_weather(location: str, state: Annotated[CustomState, InjectedState]) -> str:
+        def get_weather(location: str) -> str:
             """获取指定位置的天气信息。
 
             Args:
@@ -141,7 +141,6 @@ class WeatherToolProvider(ToolServiceProvider):
             Returns:
                 str: 天气信息
             """
-            state["has_tool_call"] = True
             return get_city_weather(location)
 
         return get_weather

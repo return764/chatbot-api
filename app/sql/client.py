@@ -5,6 +5,7 @@ class SQLiteClient:
     """SQLite客户端"""
     _instance = None
     _initialized = False
+    url = "sqlite:///.data/chat.db"
     
     def __new__(cls):
         if cls._instance is None:
@@ -15,13 +16,16 @@ class SQLiteClient:
         if not SQLiteClient._initialized:
             # 创建引擎
             self.engine = create_engine(
-                "sqlite:///.data/chat.db",
+                self.url,
                 connect_args={"check_same_thread": False},
                 echo=False  # 设置为True可以看到SQL语句,
             )
             
             SQLiteClient._initialized = True
     
+    def get_conn(self):
+        return self.engine.raw_connection()
+
     @classmethod
     def get_instance(cls) -> 'SQLiteClient':
         """获取SQLiteClient实例"""

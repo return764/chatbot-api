@@ -8,6 +8,11 @@ class MessageRole(str, Enum):
     AI = "ai"
     HUMAN = "human"
 
+class MessageType(str, Enum):
+    """消息类型"""
+    MESSAGE = "message"
+    TOOL_CALL = "tool_call"
+
 class ChatHistory(SQLModel, table=True):
     """聊天历史记录表"""
     __tablename__ = 'chat_history'
@@ -18,8 +23,9 @@ class ChatHistory(SQLModel, table=True):
     user_id: int = Field(nullable=False, index=True)
     group_id: int = Field(nullable=True, index=True)
     role: MessageRole = Field(nullable=False, default=MessageRole.HUMAN)
+    type: MessageType = Field(nullable=False, default=MessageType.MESSAGE)
     
     def __repr__(self):
-        return f"<ChatHistory(id={self.id}, user_id={self.user_id}, group_id={self.group_id}, role={self.role})>"
+        return f"<ChatHistory(id={self.id}, user_id={self.user_id}, group_id={self.group_id}, role={self.role}, type={self.type})>"
 
 db_client.create_db_and_tables()
