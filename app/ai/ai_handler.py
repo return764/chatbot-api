@@ -15,6 +15,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.sqlite import SqliteSaver
 from app.sql.client import db_client
 
+
 logger = logging.getLogger("uvicorn")
 
 def create_chat_model() -> ChatOpenAI:
@@ -23,7 +24,7 @@ def create_chat_model() -> ChatOpenAI:
         base_url=config.openai_base_url,
         api_key=config.openai_api_key,
         model=config.openai_model,
-        temperature=0.7
+        temperature=0.7,
     )
 
 class CustomStore(BaseStore):
@@ -49,7 +50,7 @@ def create_agent(checkpointer: SqliteSaver):
 
     model_runnable = prepare_model_inputs | bound_model
 
-    def call_model(state: CustomState, config: RunnableConfig) -> CustomState: 
+    def call_model(state: CustomState, config: RunnableConfig) -> CustomState:
         summary = state.get("summary", "")
         if summary:
             system_message = f"以前对话的总结: {summary}"
@@ -67,9 +68,18 @@ def create_agent(checkpointer: SqliteSaver):
         else:
             summary_message = "使用简短的方式总结以上对话,禁止使用问候语:"
 
-        filtered_message = filter_messages(state['messages'], exclude_types=[ToolMessage])
+        filtered_messages = []
+        skip_next_ai = False
+        for msg in state['messages']:
+            if isinstance(msg, ToolMessage):
+                skip_next_ai = True
+                continue
+            if isinstance(msg, AIMessage) and skip_next_ai:
+                skip_next_ai = False
+                continue
+            filtered_messages.append(msg)
 
-        messages = filtered_message + [HumanMessage(content=summary_message)]
+        messages = filtered_messages + [HumanMessage(content=summary_message)]
         response = llm.invoke(messages)
         delete_messages = [RemoveMessage(id=m.id) for m in state["messages"][:-2]]
         return {"summary": response.content, "messages": delete_messages}
@@ -84,6 +94,7 @@ def create_agent(checkpointer: SqliteSaver):
                 return "summarize"
             return "__end__"
         else:
+            state.has_tool_call = True
             return "tools"
 
     tool_nodes = ToolNode(tools)
@@ -96,7 +107,7 @@ def create_agent(checkpointer: SqliteSaver):
     workflow.add_conditional_edges("agent", should_continue, ['summarize', 'tools', END])
     workflow.set_finish_point('summarize')
     return workflow.compile(
-        debug=True,
+        debug=False,
         checkpointer=checkpointer
     )
 
