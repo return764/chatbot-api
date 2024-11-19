@@ -24,7 +24,7 @@ def create_chat_model() -> ChatOpenAI:
         base_url=config.openai_base_url,
         api_key=config.openai_api_key,
         model=config.openai_model,
-        temperature=0.7,
+        temperature=0,
     )
 
 class CustomStore(BaseStore):
@@ -35,6 +35,7 @@ def prepare_model_inputs(state: CustomState, config: RunnableConfig):
     return [{"role": "system", "content": f"""
              你是一个AI助手,
              使用简短的结果回复,
+             如果你不清楚答案,可以拒绝回复
              禁止回复无关问题,
              禁止使用markdown格式,
              请全程使用中文。
@@ -43,9 +44,9 @@ def prepare_model_inputs(state: CustomState, config: RunnableConfig):
              """}] + state["messages"]
 
 
-def create_agent(checkpointer: SqliteSaver): 
+def create_agent(checkpointer: SqliteSaver):
     llm = create_chat_model()
-    tools = get_tools();
+    tools = get_tools()
     bound_model = llm.bind_tools(tools)
 
     model_runnable = prepare_model_inputs | bound_model
@@ -57,7 +58,7 @@ def create_agent(checkpointer: SqliteSaver):
             state["messages"] = [SystemMessage(content=system_message)] + state["messages"]
         response = model_runnable.invoke(state, config)
         return {"messages": [response]}
-    
+
     def summarize_conversation(state: CustomState):
         summary = state.get("summary", "")
         if summary:
@@ -71,6 +72,8 @@ def create_agent(checkpointer: SqliteSaver):
         filtered_messages = []
         skip_next_ai = False
         for msg in state['messages']:
+            if isinstance(msg, HumanMessage):
+                continue
             if isinstance(msg, ToolMessage):
                 skip_next_ai = True
                 continue
@@ -94,7 +97,7 @@ def create_agent(checkpointer: SqliteSaver):
                 return "summarize"
             return "__end__"
         else:
-            state.has_tool_call = True
+            state["has_tool_call"] = True
             return "tools"
 
     tool_nodes = ToolNode(tools)
@@ -107,7 +110,7 @@ def create_agent(checkpointer: SqliteSaver):
     workflow.add_conditional_edges("agent", should_continue, ['summarize', 'tools', END])
     workflow.set_finish_point('summarize')
     return workflow.compile(
-        debug=False,
+        debug=True,
         checkpointer=checkpointer
     )
 
@@ -115,19 +118,19 @@ def create_agent(checkpointer: SqliteSaver):
 class AIHandler:
     _instance = None
     _initialized = False
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
         # 确保初始化代码只运行一次
         if not AIHandler._initialized:
             checkpointer = SqliteSaver(db_client.get_conn())
             self.agent_executor = create_agent(checkpointer)
             AIHandler._initialized = True
-    
+
     def get_response(self, message: FormattedMessage) -> Optional[str]:
         """获取AI响应"""
         try:
@@ -135,13 +138,13 @@ class AIHandler:
 
             response = self.agent_executor.invoke(
                 input={"messages": [HumanMessage(content=message.content)], "today": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
-                config={"configurable": {"thread_id": thread_id}}
+                config={"configurable": {"thread_id": thread_id, "user_id": message.raw.user_id, "group_id": message.raw.group_id if isinstance(message.raw, GroupMessage) else None}}
             )
             return response["messages"][-1].content
         except Exception as e:
             logger.info(f"AI处理出错: {e}")
             raise e
-    
+
     @classmethod
     def get_instance(cls) -> 'AIHandler':
         """获取AIHandler实例"""

@@ -1,5 +1,5 @@
+from typing import List
 import httpx
-import asyncio
 import logging
 
 logger = logging.getLogger("uvicorn")
@@ -22,20 +22,33 @@ class BotClient:
             )
             BotClient._initialized = True
     
-    async def send_group_message(self, group_id: int, message: str) -> bool:
+    async def send_group_message(self, group_id: int, message: str, at_list: List[int] = []) -> bool:
         """发送群消息
         
         Args:
             group_id: 群号
             message: 消息内容
+            at_list: at数组
             
         Returns:
             bool: 是否发送成功
         """
         try:
+            
+            at_segments = [
+                {
+                    "type": "at",
+                    "data": {
+                        "qq": at_id
+                    }
+                }
+                for at_id in at_list
+            ]
+            
             response = await self.client.post("/send_group_msg", json={
                 "group_id": group_id,
                 "message": [
+                    *at_segments,
                     {
                         "type": "text",
                         "data": {
@@ -71,18 +84,3 @@ class BotClient:
 
 # 创建全局实例
 bot_client = BotClient.get_instance()
-
-# 在程序退出时关闭客户端
-import atexit
-import asyncio
-
-def cleanup():
-    """清理资源"""
-    if bot_client:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(bot_client.close())
-        else:
-            loop.run_until_complete(bot_client.close())
-
-atexit.register(cleanup) 

@@ -1,3 +1,6 @@
+import uvicorn
+from app.logger import LOGGING_CONFIG
+from app.bot_client import bot_client
 from fastapi import FastAPI, Request
 from fastapi.concurrency import asynccontextmanager
 from app.model import (
@@ -16,21 +19,26 @@ from app.handler import (
     handle_meta_event
 )
 import logging
-
+from app.ai.tools.timer_tool_provider import timer_service
 from app.sql.client import db_client
 
 logger = logging.getLogger("uvicorn")
-app = FastAPI()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """应用生命周期管理"""
+    timer_service.start()
     yield
+    timer_service.shutdown()
+    await bot_client.close()
     db_client.close()
+
+app = FastAPI(lifespan=lifespan)
 
 @app.post("/onebot")
 async def onebotapi(request: Request):
-    data = await request.body()  # 获取事件数据
+    data = await request.body()
     message = BasicMessage.model_validate_json(data)
     match message:
         case GroupMessage() as group_message:
@@ -48,15 +56,10 @@ async def onebotapi(request: Request):
     return {}
 
 if __name__ == "__main__":
-    import uvicorn
-    from app.logger import LOGGING_CONFIG
-    
     uvicorn.run(
         "main:app", 
         host="192.168.2.7", 
         port=5140,
-        reload=True,
+        reload=False,
         log_config=LOGGING_CONFIG
     )
-
-

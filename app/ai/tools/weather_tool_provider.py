@@ -1,15 +1,13 @@
 import httpx
 import logging
-from typing import Annotated, Optional, Dict, List
+from typing import Optional, Dict, List
 
 from langchain.tools import BaseTool
-from langgraph.prebuilt import InjectedState
 
 from app.config import config
 from app.ai.tools.abc import ToolServiceProvider
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
-from app.ai.state import CustomState
 
 
 logger = logging.getLogger("uvicorn")
