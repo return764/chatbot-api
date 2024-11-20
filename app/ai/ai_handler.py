@@ -64,10 +64,10 @@ def create_agent(checkpointer: SqliteSaver):
         if summary:
             summary_message = (
                 f"这是迄今为止的对话总结: {summary}\n\n"
-                "通过简短的方式使用新消息来扩展总结,禁止使用问候语:"
+                "通过简短的方式使用新消息来扩展总结,不要总结实时信息(例如时间,天气),禁止使用问候语:"
             )
         else:
-            summary_message = "使用简短的方式总结以上对话,禁止使用问候语:"
+            summary_message = "使用简短的方式总结以上对话,不要总结实时信息(例如时间,天气),禁止使用问候语:"
 
         filtered_messages = []
         skip_next_ai = False

@@ -58,7 +58,7 @@ async def onebotapi(request: Request):
 if __name__ == "__main__":
     uvicorn.run(
         "main:app", 
-        host="192.168.2.7", 
+        host="0.0.0.0", 
         port=5140,
         reload=False,
         log_config=LOGGING_CONFIG
