@@ -80,6 +80,8 @@ def create_agent(checkpointer: SqliteSaver):
             if isinstance(msg, AIMessage) and skip_next_ai:
                 skip_next_ai = False
                 continue
+            if isinstance(msg, AIMessage) and msg.tool_calls:
+                continue
             filtered_messages.append(msg)
 
         messages = filtered_messages + [HumanMessage(content=summary_message)]
