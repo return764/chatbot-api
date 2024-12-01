@@ -86,7 +86,7 @@ def create_agent(checkpointer: SqliteSaver):
 
         messages = filtered_messages + [HumanMessage(content=summary_message)]
         response = llm.invoke(messages)
-        delete_messages = [RemoveMessage(id=m.id) for m in state["messages"][:-2]]
+        delete_messages = [RemoveMessage(id=m.id) for m in state["messages"][:-1]]
         return {"summary": response.content, "messages": delete_messages}
 
 
